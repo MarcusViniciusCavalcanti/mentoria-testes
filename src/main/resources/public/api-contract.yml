@@ -1,0 +1,548 @@
+openapi: 3.0.1
+
+info:
+  title: Coop Votes API
+  description: |-
+    Para obter mais informações sobre o desenvolvimento
+    acessar o [github](https://github.com/MarcusViniciusCavalcanti/coopvotes).
+
+    ## Overview
+
+    Api CoopVotes
+
+    Esta api está agnostica de clientes deste que uso protocolos, **HTTP**.
+
+    ## Começando
+
+    Esta documentação ira auxiliar em novas implementações de __clients sides__, dando uma base
+    de como manipular os recursos que a API provem.
+
+    ### HTTP Verbs
+
+    Esta Api foi construída a seguir os padrões RESTFull, tentando aderir o mais próximo
+    possíveis das convenções uso dos verbos HTTP.
+
+
+    | Verbo     | Utilização                                      |
+    | :-------: | :---------------------------------------------- |
+    | `GET`     | Usado para recuperar recursos                   |
+    | `POST`    | Usado para criar um recurso                     |
+    | `PUT`     | Usado para atualizar um recurso                 |
+    | `PATCH`   | Usado para atualizar um parcialmente um recurso |
+    | `DELETE`  | Usado para remover um recurso existente         |
+
+    ### HTTP status codes
+
+    Esta Api foi construída seguindo os padrões RESTFull, tentando aderir o mais próximo
+    possíveis as suas convenções em seu uso dos códigos de Status HTTP.
+
+    | Status code                    | Utilização                                                                                                                          |
+    | :----------------------------: | :---------------------------------------------------------------------------------------------------------------------------------- |
+    | ``200 OK``                     | Para requisições aceitas e processadas                                                                                              |
+    | ``201 Created``                | Um novo recurso foi criado com sucesso                                                                                              |
+    | ``400 Bad Request``            | Requisição negada, pois está mal formatada, exemplo de retorno de erro quando a falta de um atributo, no corpo da mensagem          |
+    | ``409 Conflict``               | O recurso já existe com as informações dada                                                                                         |
+    | ``422 Unprocessable Entity``   | Requisição negada, pois não passou na validação da requisição, um atributo nulo ou ultrapassou o limite de caracteres, são exemplos |
+    | ``500 Internal Server Error``  | Houve um problema de processamento interno.                                                                                         |
+
+    # Header
+       Api em alguns casos, impôe aos clientes na requisição dicione alguns Headers obrigatórios,
+       outros são opicionais porém para melhor resposta da requisição é recomendado incluir os Headers
+       aqui dispostos.
+
+    ## Requisições
+    Headers para enviar requisições.
+
+    ### Accept-Language
+       Api fara a tradução de texto com base neste header, caso o valor do idioma não ouver tradução,
+       o idioma será o inglês.
+
+       __Importante resultar que Api utilizara o primeiro elemento do valor do header.__
+
+       Por exemplo:
+       `Accept-Language: en-US,en,pt` neste caso a api utilizara como idioma de resposta o valor de:
+       __en-US__
+
+       Atualmente a API suporta os seguites idiomas:
+       * Inglês en-US
+       * Portugues do brasil pt-BR
+
+    ## Resposta
+    Headers que será retornados na resposta.
+
+    ### Version-Api
+      Version-Api será para definir a versão da Api que respondeu a solicitação.
+
+      Por exemplo:
+      `Version-Api: 1.0.0`
+
+  contact:
+    email: vincius.cavalcanti16@gmail.com
+  version: 1.0.0
+  license:
+    name: "Apache 2.0"
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+
+servers:
+  - url: 'http://localhost:8080/api'
+    description: 'Servidor de aplicação de homologação'
+
+
+tags:
+  - name: Stave
+    x-displayName: Pauta
+    description: |-
+      Um recurso Pauta `Stave` é uma representação abstrata na Api que guarda os dados de uma Pauta,
+      o recurso tem como proposito guarda as informações de uma Pauta, tais como, o tema abordado, um
+      descritivo para melhor compreensão do tema, inicio da sessão de votação, fim do sessão de votação,
+      quantidade de votos a favor e contra por fim o total de votos recebidos. Consulte a sessão __Schemas__ para
+      obter mais informações sobre os campos.
+
+      #### Estados de uma Pauta
+      Uma Pauta poderá ter 5 estados possíveis:
+      * __CREATE__ -> Neste estado a pauta está criada, mas ainda não tem uma sessão definida.
+      * __VOTING_IN_PROGRESS__ -> O estado defini que a pauta está com uma sessão de votação em andamento.
+      * __CANCEL__ -> Estado alternativo, neste estado a Pauta foi cancelada.
+      * __CALCULATING_VOTES__ -> Quando uma sessão de uma Pauta foi encerrada a mesma fica neste estado,
+      pois está calculando os votos.
+      * __SESSION_VOTES_DONE__ -> Último estado possível, A pauta neste estado, informa que a sessão
+      terminou os votos foram computados.
+
+      O diagrama abaixo pode exemplificar o ciclo de vida de uma Pauta:
+
+                                                           +----------+
+                    |---------------------------+--------->|  CANCEL  |
+                    |                           |          +----------+
+                    |                           |
+              +-----+----+          +-----------+----------+          +---------------------+
+              |  CREATE  |--------->|  VOTING_IN_PROGRESS  |--------->|  CALCULATING_VOTES  |
+              +----------+          +----------------------+          +----------+----------+
+                                                                                 |
+                                                                                 |
+                                                                                 |     +----------------------+
+                                                                                 |---->|  SESSION_VOTES_DONE  |
+                                                                                       +----------------------+
+
+      #### Ações para uma Pauta
+      Ações que a Api dispôe para o recurso Pauta são, consulte a sessão de cada ação para mais informações:
+      * Criar uma Pauta
+      * Editar uma Pauta especifica já criada.
+      * Cancelar uma pauta já criada. Observe que esta ação tem certa restrição, melhor explorado a baixo.
+      * Iniciar uma sessão de votação.
+      * Votar em uma pauta especifica, já criada.
+
+      Como demostra no diagrama acima, uma votação poderá ser cancelada apenas no estado de votação em progresso
+      ou quando estado de criada `CREATE`, o mesmo não é verdade para uma Pauta que está em uma estado de calculando
+      votos `CALCULATING_VOTES` ou a sessão foi concluída.
+
+      Outra retrição é quando uma votação passou do estado de create, para qualquer outro estado,
+      esta Pauta não poderá ser mais editada. A tabela abaixa pode ser melhor visualizado as ações
+      que cada estado poderá.
+
+      | Estado               | Cancelar | Editar | Votar  |
+      | :------------------: | :------: | :----: | :----: |
+      | `CREATE`             |     Y    |    Y   |    N   |
+      | `VOTING_IN_PROGRESS` |     Y    |    N   |    Y   |
+      | `CALCULATING_VOTES`  |     N    |    N   |    N   |
+      | `SESSION_VOTES_DONE` |     N    |    N   |    N   |
+
+      #### Votações
+      Uma sessão de votação para uma Pauta poderá ser iniciado a qualquer momento, o tempo da sessão
+      de ser informado com um valor inteiro que representa os __SEGUNDOS__, que uma sessão tem para votação
+      este valor é opcional, caso não informado a Api utilizara o valor padrão de 1, (um) minuto, ou seja
+      60s.
+  - name: Vote
+    x-displayName: Vote
+    description: |-
+      Um recurso `Vote` representa um voto em uma pauta especifica na Api, todos os votos enviadas
+      para Api serão contabilizados ao final da Sessão de votação da pauta, consulte a sessão da Pauta
+      para mais informações sobre iniciar uma sessão de votação.
+
+      O processo para validar o voto, exceto o corpo da requisição e error interno no servido, é transparete referente um envio
+      de voto, isto quer dizer, que um voto será contabilizado e validado ao final da sessão de votação,
+      o cliente sempre recebera uma messagem de resposta de Aceito, `ACEPTED`, sem corpo.
+
+      Ao finalizar o processo de calculo dos votos o resultado será enviado para os ouvintes
+      que estão subscrito no tópico de resultado de votação, [consulte o manual de integração.](https://github.com/MarcusViniciusCavalcanti/coopvotes)
+
+paths:
+  /staves:
+    post:
+      summary: Cria uma nova Pauta
+      operationId: create
+      tags:
+        - Stave
+      description: Cria um recurso Pauta `Stave`
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputNewStave'
+      responses:
+        '201':
+          $ref: '#/components/responses/StaveCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Atualiza uma Pauta
+      operationId: update
+      tags:
+        - Stave
+      description: |-
+        Uma Pauta pode ser atualizada respeita as seguintes regras:
+
+        * A pauta poderá ser atualizada so e somente só, estiver no estado __CREATE__;
+        * O tema `theme`, apenas se tema não estiver cadastrado posteriormente, exceto a Pauta com
+        o tema cadastrado anteriormente estive no estado finalizado __SESSION_VOTES_DONE__;
+      parameters:
+        - in: path
+          name: id
+          description: identificar único Pauta encontrar a pauta a ser atualizada
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputUpdateStave'
+      responses:
+        '200':
+          $ref: '#/components/responses/StaveUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Cancela uma Pauta
+      operationId: cancel
+      tags:
+        - Stave
+      description: |-
+        Uma Pauta pode ser cancelada respeita as seguinte regra:
+
+        * A pauta poderá ser cancelada so e somente só, estiver no estado __CREATE__ ou __VOTING_IN_PROGRESS__;
+      parameters:
+        - in: path
+          name: id
+          description: identificar único Pauta para localizar a Pauta a ser cancelada.
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '204':
+          description: Pauta cancelada com sucesso.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /start-session-vote:
+    patch:
+      summary: Inicia uma sessão para votação de uma pauta especifica.
+      operationId: startSession
+      description: Inicia uma sessão de votação. Lembre-se caso o timeToLive não for informado, o valor padrão será utilizado, neste caso o valor é 1 (um) minuto.
+      tags:
+        - Stave
+      parameters:
+        - in: path
+          name: id
+          description: identificar único Pauta para iniciar a sessão.
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputStartSession'
+      responses:
+        '202':
+          description: Sessão de votação iniciada com sucesso
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /vote:
+    post:
+      summary: Include uma voto a uma pauta especifica.
+      operationId: includeVote
+      tags:
+        - Vote
+      description: Adiciona um voto
+      requestBody:
+        required: true
+        description: Valor do voto.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputIncludeVote'
+      responses:
+        '202':
+          description: Voto foi aceito com sucesso.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    #response
+    Stave:
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Identificador único de uma Pauta
+          example: 1001
+        theme:
+          type: string
+          description: Tema da pauta
+          example: Pauta que será discutida tal assunto.
+        description:
+          type: string
+          description: Texto descrição da pauta
+          example: Descrição da Pauta para o tema tal.
+        state:
+          type: string
+          description: Estado da pauta
+          example: create
+        createAt:
+          type: string
+          format: date-time
+          description: Data de criação da Pauta
+          example: "2021-01-30T08:30:00Z"
+        startSessionVoting:
+          type: string
+          format: date-time
+          description: Data do inicio da sessão de votação da Pauta
+          example: "2021-01-30T08:30:00Z"
+        endSessionVoting:
+          type: string
+          format: date-time
+          description: Data do fim da sessão de votação da Pauta
+          example: "2021-01-30T08:30:00Z"
+        totalVotes:
+          type: integer
+          description: total de votos que a Pauta teve na sessão de votação.
+          example: 500
+        totalVotesYes:
+          type: integer
+          description: total de votos positivos que a Pauta teve.
+          example: 300
+        totalVotesNo:
+          type: integer
+          description: total de votos negativos que a Pauta teve.
+          example: 200
+
+    #Inputs
+    InputNewStave:
+      type: object
+      required:
+        - theme
+        - description
+      properties:
+        theme:
+          type: string
+          minLength: 5
+          maxLength: 100
+          description: Texto simples para que defini o tema da pauta
+          example: Pauta para definir o assunto tal.
+        description:
+          type: string
+          minLength: 5
+          maxLength: 255
+          description: Texto descritivo para melhor explicação referente ao tema.
+          example: Pauta foi criada para melhor elaborar tal assunto.
+    InputStartSession:
+      type: object
+      properties:
+        timeToLive:
+          type: integer
+          format: int64
+          default: 60
+          minimum: 1
+          description: Tempo em seguntos da duração de uma sessão.
+          example: 10
+    InputUpdateStave:
+      properties:
+        theme:
+          type: string
+          description: Tema da pauta
+          example: Pauta que será discutida tal assunto.
+        description:
+          type: string
+          description: Texto descrição da pauta
+          example: Descrição da Pauta para o tema tal.
+    InputIncludeVote:
+      type: object
+      required:
+        - idStave
+        - legalDocumentNumberAssociate
+        - value
+      properties:
+        idStave:
+          type: integer
+          format: int64
+          description: Identificador a Pauta que será incluida o voto
+          example: 10000
+        legalDocumentNumberAssociate:
+          type: string
+          pattern: "([0-9]{3}[.]?[0-9]{3}[.]?[0-9]{3}-[0-9]{2})|([0-9]{11})"
+          minLength: 11
+          maxLength: 14
+          description: Cpf do associado que está votando. Api aceita CPF com ou sem pontuação
+          example: 111.111.111-11
+        value:
+          type: boolean
+          nullable: false
+          description: |-
+             Valor do voto,
+              * `True` para sim,
+              * `Falso` para não
+          example: true
+
+
+    # erros
+    ErrorBase:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 0
+          description: Code de status http
+        message:
+          type: string
+          example: Um erro ocorreu.
+          description: Mensagem da ocorrencia do erro.
+        path:
+          type: string
+          example: /path
+          description: uri da ocorrencia do erro
+    Error:
+      allOf:
+        - type: object
+        - $ref: '#/components/schemas/ErrorBase'
+        - properties:
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ErrorDetails'
+    ErrorDetails:
+      type: object
+      properties:
+        field:
+          type: string
+          example: type.field
+          description: nome do campo que contém um erro
+        descriptionError:
+          type: string
+          example: Campo inválido
+          description: descreve o erro encontrado no campo.
+
+  headers:
+    Version-Api:
+      description: Define a versão da api, da qual respondeu a solicitação.
+      schema:
+        type: string
+        default: '1.0.0'
+      example: '0.0.1'
+
+  responses:
+    StaveCreateResponse:
+      description: Retorno de uma solicitação para ação de criar uma Pauta com sucesso.
+      headers:
+        Version-Api:
+          $ref: '#/components/headers/Version-Api'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Stave'
+    StaveUpdateResponse:
+      description: Retorno de uma solicitação para ação de atualizar uma Pauta com sucesso.
+      headers:
+        Version-Api:
+          $ref: '#/components/headers/Version-Api'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Stave'
+
+
+    # errors
+    BadRequest:
+      description: >
+        Requisição está invalida, o corpo da mensagem está mal formatada, por exemplo, campos faltando ou
+        campos estão inválidos (formato inválido).
+          No corpo da resposta encontrar uma lista de detalhes que dará informações pertinentes para corrigir o erro.
+        Para maiores informações consulte a [rfc-7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      headers:
+        Version-Api:
+          $ref: '#/components/headers/Version-Api'
+    NotFound:
+      description: |-
+        Recurso não foi encontrado, geralmente a url pode está errada ou recurso pedido não existe.
+
+
+        Para maiores informações consulte a [rfc-7231](https://httpwg.org/specs/rfc7231.html#status.404).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBase'
+    Conflict:
+      description: |-
+        `Requisição` foi aceita mas, os dados enviados está em conflito com o recurso a ser manipulado
+        por exemplo: uma Pauta com um tema já foi cadastrada anteriormente.
+
+
+        Para maiores informações consulte a [rfc-7231](https://httpwg.org/specs/rfc7231.html#status.409).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBase'
+    UnprocessableEntity:
+      description: >
+        `Requisição` foi aceita mas, não foi possível concluir com sucesso, devido __alguma regra de negocio__
+        por exemplo: validações, ou estado de uma Pauta não permite a ação que originou o error.
+
+
+        Para maiores informações consulte a [rfc-4918](https://datatracker.ietf.org/doc/html/rfc4918#section-11.2).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBase'
+    InternalServerError:
+      description: >
+        Error inesperado em alguma parte do processo, neste caso a api não conseguiu se recuperar
+        do error.
+
+
+        Caso isto ocorra, por favor, notifique o momento do erro, crie uma issue no __repositório__ da aplicação explicando
+        os detalhes de como aconteceu o error.
+
+
+        Para maiores informações consulte a [rfc-7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.6.1).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBase'

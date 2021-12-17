@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-table-stave
+      author: Vinicius Cavalcanti
+      changes:
+        - createTable:
+            tableName: stave
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: theme
+                  type: varchar(100)
+              - column:
+                  name: description
+                  type: varchar(255)
+              - column:
+                  name: state
+                  type: varchar(20)
+              - column:
+                  name: start_session_voting
+                  type: DATETIME(3)
+              - column:
+                  name: time_to_leave_session
+                  type: bigint
+              - column:
+                  name: create_at
+                  type: DATETIME(3)
+              - column:
+                  name: update_at
+                  type: DATETIME(3)
+              - column:
+                  name: total_votes_yes
+                  type: integer
+                  defaultValue: 0
+              - column:
+                  name: total_votes_no
+                  type: integer
+                  defaultValue: 0
+              - column:
+                  name: total_votes_invalid
+                  type: integer
+                  defaultValue: 0

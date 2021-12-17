@@ -1,0 +1,91 @@
+application:
+  version: @project.version@
+
+coopvotes:
+  configurations:
+    datasource:
+      url: ~
+      username: ~
+      password: ~
+      driverClass: ~
+    associateService:
+      url: ~
+    kafka:
+      producer:
+        bootstrapServersHost: ~
+        topic: ~
+    redis:
+      host: ~
+      port: 0
+    thread:
+      core: 2
+      poolSize: 2
+      queueCapacity: 500
+      prefix: coop-votes-lookup
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    application-display-name: coopvotes-api
+
+spring:
+  mvc:
+    throw-exception-if-no-handler-found: true
+  redis:
+    timeout: 0
+    lettuce:
+      pool:
+        max-active: 50
+        min-idle: 5
+        max-idle: 50
+        max-wait: 1
+  data:
+    redis:
+      repositories:
+        enabled: false
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  liquibase:
+    change-log: classpath:/db/changelog/databaseChangelog.yml
+  datasource:
+    driver-class-name: ${coopvotes.configurations.datasource.driverClass}
+    url: ${coopvotes.configurations.datasource.url}
+    username: ${coopvotes.configurations.datasource.username}
+    password: ${coopvotes.configurations.datasource.password}
+    hikari:
+      connection-timeout: 15000
+      idle-timeout: 300000
+      max-lifetime: 700000
+      maximum-pool-size: 20
+      minimum-idle: 5
+      pool-name: CoopvotesPoolHirakiApplication
+      validation-timeout: 300000
+      connection-test-query: SELECT 1
+  jpa:
+    show-sql: false
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+
+
+# docs swagger configurations
+springdoc:
+  api-docs:
+    enabled: false
+
+
+# feign
+feign:
+  circuitbreaker:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 3000
+        readTimeout: 3000
+        loggerLevel: BASIC
+    refresh-enabled: true
+

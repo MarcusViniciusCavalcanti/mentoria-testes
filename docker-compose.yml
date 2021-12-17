@@ -1,0 +1,43 @@
+version: '3.6'
+services:
+  postgres:
+    container_name: coopvotes_database
+    image: postgres:13.4-alpine
+    ports:
+      - "5432:5432"
+    expose:
+      - 5432
+    environment:
+      POSTGRES_PASSWORD: coopvotes
+      POSTGRES_USER: coopvotes
+      POSTGRES_DB: coopvotes
+    volumes:
+    - ./config/database:/var/lib/postgresql/data
+  redis:
+    container_name: coopvotes_redis
+    image: library/redis:alpine
+    ports:
+      - "6379:6379"
+    expose:
+      - 6379
+  zookeeper:
+    container_name: coopvotes_zookeper
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+  kafka:
+    container_name: coopvotes_kafka
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    expose:
+      - 9092
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+
+volumes:
+  config:

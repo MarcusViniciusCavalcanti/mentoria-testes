@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: changelog-create-table-stave.yml
+      relativeToChangelogFile: true
+  - include:
+      file: changelog-create-table-vote.yml
+      relativeToChangelogFile: true

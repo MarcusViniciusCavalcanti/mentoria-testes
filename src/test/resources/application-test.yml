@@ -1,0 +1,43 @@
+coopvotes:
+  configurations:
+    kafka:
+      producer:
+        topic: resultStave-test
+        bootstrapServersHost: localhost:9092
+    associateService:
+      url: http://localhost:9000
+    thread:
+      core: 2
+      poolSize: 2
+      queueCapacity: 500
+      prefix: coop-votes-test-lookup
+
+
+junit:
+  jupiter:
+    execution:
+      parallel:
+        enabled: false
+
+spring:
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: testCoopVotes
+  redis:
+    timeout: 0
+  cache:
+    type: none
+  data:
+    redis:
+      repositories:
+        enabled: false
+  datasource:
+    hikari:
+      connection-timeout: 250
+      idle-timeout: 250
+      max-lifetime: 250
+      maximum-pool-size: 4
+      minimum-idle: 4
+      pool-name: CoopVotesPoolHirakiApplicationTest
+      validation-timeout: 250

@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-table-vote
+      author: Vinicius Cavalcanti
+      changes:
+        - createTable:
+            tableName: vote
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: vote_type
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: id_stave
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: associated_identifier
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: associate_status
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: date
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed
+                  type: boolean
+                  defaultValueBoolean: false
+
+        - addForeignKeyConstraint:
+            baseColumnNames: id_stave
+            baseTableName: vote
+            constraintName: fk_vote_id_to_stave_id
+            referencedColumnNames: id
+            referencedTableName: stave

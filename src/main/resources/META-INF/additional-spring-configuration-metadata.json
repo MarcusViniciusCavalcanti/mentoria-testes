@@ -1,0 +1,74 @@
+{
+  "properties": [
+    {
+      "name": "application.version",
+      "type": "java.lang.String",
+      "description": "Description for application.version."
+    },
+    {
+      "name": "coopvotes.configurations.datasource.url",
+      "type": "java.lang.String",
+      "description": "Url to database."
+    },
+    {
+      "name": "coopvotes.configurations.datasource.username",
+      "type": "java.lang.String",
+      "description": "Username of the user database."
+    },
+    {
+      "name": "coopvotes.configurations.datasource.password",
+      "type": "java.lang.String",
+      "description": "Password of the user database."
+    },
+    {
+      "name": "coopvotes.configurations.datasource.driverClass",
+      "type": "java.lang.String",
+      "description": "Define driver jdbc of the database."
+    },
+    {
+      "name": "coopvotes.configurations.kafka.producer.bootstrapServersHost",
+      "type": "java.lang.String",
+      "description": "Host Kafka to messages sessions votes."
+    },
+    {
+      "name": "coopvotes.configurations.kafka.producer.topic",
+      "type": "java.lang.String",
+      "description": "Topic name Kafka to message sessions votes."
+    },
+    {
+      "name": "coopvotes.configurations.redis.host",
+      "type": "java.lang.String",
+      "description": "Host Redis to control sessions votes."
+    },
+    {
+      "name": "coopvotes.configurations.redis.port",
+      "type": "java.lang.String",
+      "description": "Port Redis to control sessions votes."
+    },
+    {
+      "name": "coopvotes.configurations.associateService.url",
+      "type": "java.lang.String",
+      "description": "Url service to associate grant authorized vote."
+    },
+    {
+      "name": "coopvotes.configurations.thread.core",
+      "type": "java.lang.String",
+      "description": "Amount main thread pool."
+    },
+    {
+      "name": "coopvotes.configurations.thread.poolSize",
+      "type": "java.lang.String",
+      "description": "Amount max poll size."
+    },
+    {
+      "name": "coopvotes.configurations.thread.queueCapacity",
+      "type": "java.lang.String",
+      "description": "Amount queue capacity thread executor."
+    },
+    {
+      "name": "coopvotes.configurations.thread.prefix",
+      "type": "java.lang.String",
+      "description": "Description for thread prefix name."
+    }
+  ]
+}

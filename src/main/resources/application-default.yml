@@ -1,0 +1,21 @@
+coopvotes:
+  configurations:
+    datasource:
+      url:  jdbc:postgresql://localhost:5432/coopvotes
+      username: coopvotes
+      password: coopvotes
+      driverClass: org.postgresql.Driver
+    associateService:
+      url: http://localhost:8081
+    kafka:
+      producer:
+        bootstrapServersHost: localhost:9092
+        topic: resultStave
+    redis:
+      host: 127.0.0.1
+      port: 6379
+    thread:
+      core: 1
+      poolSize: 20
+      queueCapacity: 1000
+      prefix: coop-votes-lookup
